@@ -1,0 +1,105 @@
+{
+	"info": {
+		"_postman_id": "ee9e4b12-7518-4b99-85bf-43bf13ff9203",
+		"name": "FileUploadAndExcelParsing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "localhost:8080/api/files/rowCount",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/api/files/rowCount",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"files",
+						"rowCount"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "localhost:8080/api/files",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/api/files",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"files"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "localhost:8080/api/files/upload",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "content",
+							"type": "file",
+							"src": "/C:/Users/maild/Downloads/OrderCreationExcelFormat.xlsx"
+						}
+					]
+				},
+				"url": {
+					"raw": "localhost:8080/api/files/upload",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"files",
+						"upload"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "localhost:8080/api/files/read?contentName=OrderCreationExcelFormat.xlsx",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/api/files/read?contentName=OrderCreationExcelFormat.xlsx",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"files",
+						"read"
+					],
+					"query": [
+						{
+							"key": "contentName",
+							"value": "OrderCreationExcelFormat.xlsx"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
