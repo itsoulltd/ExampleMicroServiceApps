@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,11 +28,17 @@ public class ContentParsingService {
         public String value(){return value;}
     }
 
-    public Map<Integer, List<String>> read(InputStream file, String fileName) throws IOException {
+    public Map<Integer, List<String>> read(InputStream inputStream, String fileName) throws IOException {
         if (fileName.endsWith(SupportedExtension.Xlsx.value())){
-            return parseContent(new XSSFWorkbook(file));
+            Workbook workbook = new XSSFWorkbook(inputStream);
+            Map res = parseContent(workbook);
+            workbook.close();
+            return res;
         }else if(fileName.endsWith(SupportedExtension.Xls.value())){
-            return parseContent(new HSSFWorkbook(file));
+            Workbook workbook = new HSSFWorkbook(inputStream);
+            Map res = parseContent(workbook);
+            workbook.close();
+            return res;
         }
         return new HashMap<>();
     }
@@ -65,6 +72,35 @@ public class ContentParsingService {
             i++;
         }
         return data;
+    }
+
+    public void write(OutputStream outputStream, String fileName, Map<Integer, List<String>> data) throws IOException {
+        Workbook workbook = null;
+        if (fileName.endsWith(SupportedExtension.Xlsx.value())){
+            workbook = new XSSFWorkbook();
+        }else if(fileName.endsWith(SupportedExtension.Xls.value())){
+            workbook = new HSSFWorkbook();
+        }
+        if (workbook != null){
+            writeContent(workbook, data);
+            workbook.write(outputStream);
+            workbook.close();
+        }
+    }
+
+    private void writeContent(Workbook workbook, Map<Integer, List<String>> data) throws IOException {
+        //DoTheMath:
+        Sheet sheet = workbook.createSheet();
+        for (Map.Entry<Integer, List<String>> entry : data.entrySet()){
+            Row row = sheet.createRow(entry.getKey());
+            int cellIndex = 0;
+            for (String cellVal : entry.getValue()) {
+                Cell cell = row.createCell(cellIndex);
+                cell.setCellValue(cellVal);
+                sheet.autoSizeColumn(cellIndex);
+                cellIndex++;
+            }
+        }
     }
 
 }
