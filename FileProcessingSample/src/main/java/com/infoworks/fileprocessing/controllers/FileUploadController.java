@@ -2,9 +2,8 @@ package com.infoworks.fileprocessing.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.infoworks.fileprocessing.services.ContentParsingService;
+import com.infoworks.fileprocessing.services.ExcelParsingService;
 import com.infoworks.fileprocessing.services.LocalStorageService;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -28,11 +26,11 @@ public class FileUploadController {
 
     private static Logger LOG = LoggerFactory.getLogger("FileUploadController");
     private LocalStorageService storageService;
-    private ContentParsingService contentService;
+    private ExcelParsingService contentService;
 
     @Autowired
     public FileUploadController(@Qualifier("local") LocalStorageService storageService
-                            , ContentParsingService contentService) {
+                            , ExcelParsingService contentService) {
         this.storageService = storageService;
         this.contentService = contentService;
     }
@@ -63,12 +61,12 @@ public class FileUploadController {
             @RequestParam("contentName") String contentName) {
         //
         List<String> result = new ArrayList<>();
-        InputStream file = storageService.read(contentName);
+        InputStream inputStream = storageService.read(contentName);
         ObjectMapper mapper = new ObjectMapper();
-        if(file != null) {
+        if(inputStream != null) {
             try {
-                InputStream fileInputStream = file;//storageService.copy(file);
-                Map<Integer, List<String>> data = contentService.read(fileInputStream, contentName);
+                InputStream fileInputStream = inputStream;//storageService.copy(file);
+                Map<Integer, List<String>> data = contentService.read(fileInputStream, 0);
                 data.forEach((key, value) -> {
                     try {
                         result.add(mapper.writeValueAsString(value));

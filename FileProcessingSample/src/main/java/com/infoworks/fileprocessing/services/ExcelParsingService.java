@@ -1,10 +1,9 @@
 package com.infoworks.fileprocessing.services;
 
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class ContentParsingService {
+public class ExcelParsingService {
 
     public enum SupportedExtension{
         Xlsx(".xlsx"), Xls(".xls");
@@ -28,24 +27,23 @@ public class ContentParsingService {
         public String value(){return value;}
     }
 
-    public Map<Integer, List<String>> read(InputStream inputStream, String fileName) throws IOException {
-        if (fileName.endsWith(SupportedExtension.Xlsx.value())){
-            Workbook workbook = new XSSFWorkbook(inputStream);
-            Map res = parseContent(workbook);
-            workbook.close();
-            return res;
-        }else if(fileName.endsWith(SupportedExtension.Xls.value())){
-            Workbook workbook = new HSSFWorkbook(inputStream);
-            Map res = parseContent(workbook);
-            workbook.close();
-            return res;
-        }
-        return new HashMap<>();
+    public Map<Integer, List<String>> read(InputStream inputStream, Integer sheetAt) throws IOException {
+        Workbook workbook = WorkbookFactory.create(inputStream);
+        Map res = parseContent(workbook, sheetAt);
+        workbook.close();
+        return res;
     }
 
-    private Map<Integer, List<String>> parseContent(Workbook workbook) {
+    public Map<Integer, List<String>> read(File file, Integer sheetAt) throws IOException {
+        Workbook workbook = WorkbookFactory.create(file);
+        Map res = parseContent(workbook, sheetAt);
+        workbook.close();
+        return res;
+    }
+
+    private Map<Integer, List<String>> parseContent(Workbook workbook, Integer sheetAt) throws IOException {
         //DoTheMath:
-        Sheet sheet = workbook.getSheetAt(0);
+        Sheet sheet = workbook.getSheetAt(sheetAt);
         Map<Integer, List<String>> data = new HashMap<>();
         int i = 0;
         for (Row row : sheet) {
@@ -74,23 +72,18 @@ public class ContentParsingService {
         return data;
     }
 
-    public void write(OutputStream outputStream, String fileName, Map<Integer, List<String>> data) throws IOException {
-        Workbook workbook = null;
-        if (fileName.endsWith(SupportedExtension.Xlsx.value())){
-            workbook = new XSSFWorkbook();
-        }else if(fileName.endsWith(SupportedExtension.Xls.value())){
-            workbook = new HSSFWorkbook();
-        }
+    public void write(boolean xssf, OutputStream outputStream, String sheetName, Map<Integer, List<String>> data) throws IOException {
+        Workbook workbook = WorkbookFactory.create(xssf);
         if (workbook != null){
-            writeContent(workbook, data);
+            writeContent(workbook, sheetName, data);
             workbook.write(outputStream);
             workbook.close();
         }
     }
 
-    private void writeContent(Workbook workbook, Map<Integer, List<String>> data) throws IOException {
+    private void writeContent(Workbook workbook, String sheetName, Map<Integer, List<String>> data) throws IOException {
         //DoTheMath:
-        Sheet sheet = workbook.createSheet();
+        Sheet sheet = workbook.createSheet(sheetName);
         for (Map.Entry<Integer, List<String>> entry : data.entrySet()){
             Row row = sheet.createRow(entry.getKey());
             int cellIndex = 0;
