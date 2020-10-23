@@ -66,7 +66,7 @@ public class FileUploadController {
         if(inputStream != null) {
             try {
                 InputStream fileInputStream = inputStream;//storageService.copy(file);
-                Map<Integer, List<String>> data = contentService.read(fileInputStream, 0);
+                Map<Integer, List<String>> data = contentService.read(fileInputStream, 0, 0, Integer.MAX_VALUE);
                 data.forEach((key, value) -> {
                     try {
                         result.add(mapper.writeValueAsString(value));

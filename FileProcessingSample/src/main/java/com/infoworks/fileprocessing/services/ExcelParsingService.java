@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Service
 public class ExcelParsingService {
@@ -27,49 +28,111 @@ public class ExcelParsingService {
         public String value(){return value;}
     }
 
-    public Map<Integer, List<String>> read(InputStream inputStream, Integer sheetAt) throws IOException {
+    public void read(InputStream inputStream
+            , Integer bufferSize
+            , Integer sheetAt
+            , Integer pageSize
+            , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
+        //TODO:
+        /*Workbook workbook = StreamingReader.builder()
+                .rowCacheSize(pageSize)
+                .bufferSize(bufferSize)
+                .open(inputStream);*/
         Workbook workbook = WorkbookFactory.create(inputStream);
-        Map res = parseContent(workbook, sheetAt);
+        readAsync(workbook, sheetAt, pageSize, consumer);
         workbook.close();
-        return res;
     }
 
-    public Map<Integer, List<String>> read(File file, Integer sheetAt) throws IOException {
+    public void read(File file
+            , Integer bufferSize
+            , Integer sheetAt
+            , Integer pageSize
+            , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
+        //TODO:
+        /*Workbook workbook = StreamingReader.builder()
+                .rowCacheSize(pageSize)
+                .bufferSize(bufferSize)
+                .open(inputStream);*/
         Workbook workbook = WorkbookFactory.create(file);
-        Map res = parseContent(workbook, sheetAt);
+        readAsync(workbook, sheetAt, pageSize, consumer);
+        workbook.close();
+    }
+
+    private void readAsync(Workbook workbook
+            , Integer sheetAt, Integer pageSize
+            , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
+        //
+        Sheet sheet = workbook.getSheetAt(sheetAt);
+        int maxCount = sheet.getLastRowNum() + 1;
+        int loopCount = (maxCount / pageSize) + 1;
+        int index = 0;
+        int start = 0;
+        while (index < loopCount){
+            int end = start + pageSize;
+            if (end >= maxCount) end = maxCount;
+            Map res = parseContent(workbook, sheetAt, start, end);
+            if (consumer != null){
+                consumer.accept(res);
+            }
+            //
+            start += pageSize;
+            index++;
+        }
+    }
+
+    public Map<Integer, List<String>> read(InputStream inputStream, Integer sheetAt, Integer start, Integer end) throws IOException {
+        Workbook workbook = WorkbookFactory.create(inputStream);
+        Map res = parseContent(workbook, sheetAt, start, end);
         workbook.close();
         return res;
     }
 
-    private Map<Integer, List<String>> parseContent(Workbook workbook, Integer sheetAt) throws IOException {
+    public Map<Integer, List<String>> read(File file, Integer sheetAt, Integer start, Integer end) throws IOException {
+        Workbook workbook = WorkbookFactory.create(file);
+        Map res = parseContent(workbook, sheetAt, start, end);
+        workbook.close();
+        return res;
+    }
+
+    private Map<Integer, List<String>> parseContent(Workbook workbook, Integer sheetAt, Integer start, Integer end) throws IOException {
         //DoTheMath:
         Sheet sheet = workbook.getSheetAt(sheetAt);
         Map<Integer, List<String>> data = new HashMap<>();
-        int i = 0;
-        for (Row row : sheet) {
-            data.put(i, new ArrayList<>());
-            for (Cell cell : row) {
-                switch (cell.getCellTypeEnum()) {
-                    case STRING:
-                        data.get(new Integer(i)).add(cell.getRichStringCellValue().getString());
-                        break;
-                    case NUMERIC:
-                        if (DateUtil.isCellDateFormatted(cell)) {
-                            data.get(i).add(cell.getDateCellValue() + "");
-                        } else {
-                            data.get(i).add(cell.getNumericCellValue() + "");
-                        }
-                        break;
-                    case BOOLEAN:
-                        data.get(i).add(cell.getBooleanCellValue() + "");
-                        break;
-                    default:
-                        data.get(new Integer(i)).add(" ");
-                }
+        //
+        if (end <= 0 || end == Integer.MAX_VALUE){
+            end = sheet.getLastRowNum() + 1;
+        }
+        start = (start < 0) ? 0 : start;
+        int idx = (start >= end) ? 0 : start;
+        //
+        while (idx < end) {
+            data.put(idx, new ArrayList<>());
+            for (Cell cell : sheet.getRow(idx)) {
+                addInto(data, idx, cell);
             }
-            i++;
+            idx++;
         }
         return data;
+    }
+
+    private void addInto(Map<Integer, List<String>> data, int idx, Cell cell) {
+        switch (cell.getCellTypeEnum()) {
+            case STRING:
+                data.get(new Integer(idx)).add(cell.getRichStringCellValue().getString());
+                break;
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    data.get(idx).add(cell.getDateCellValue() + "");
+                } else {
+                    data.get(idx).add(cell.getNumericCellValue() + "");
+                }
+                break;
+            case BOOLEAN:
+                data.get(idx).add(cell.getBooleanCellValue() + "");
+                break;
+            default:
+                data.get(new Integer(idx)).add(" ");
+        }
     }
 
     public void write(boolean xssf, OutputStream outputStream, String sheetName, Map<Integer, List<String>> data) throws IOException {
@@ -84,8 +147,9 @@ public class ExcelParsingService {
     private void writeContent(Workbook workbook, String sheetName, Map<Integer, List<String>> data) throws IOException {
         //DoTheMath:
         Sheet sheet = workbook.createSheet(sheetName);
+        int rowIndex = 0;
         for (Map.Entry<Integer, List<String>> entry : data.entrySet()){
-            Row row = sheet.createRow(entry.getKey());
+            Row row = sheet.createRow(rowIndex);
             int cellIndex = 0;
             for (String cellVal : entry.getValue()) {
                 Cell cell = row.createCell(cellIndex);
@@ -93,6 +157,7 @@ public class ExcelParsingService {
                 sheet.autoSizeColumn(cellIndex);
                 cellIndex++;
             }
+            rowIndex++;
         }
     }
 
