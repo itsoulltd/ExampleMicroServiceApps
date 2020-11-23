@@ -1,6 +1,8 @@
 package com.infoworks.fileprocessing.services;
 
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -131,37 +133,50 @@ public class ExcelParsingService {
 
     public AsyncWriter createWriter(boolean xssf, String outFileName) {
         try {
+            if(outFileName == null || outFileName.isEmpty()) return null;
             return new AsyncWriter(xssf, outFileName);
         } catch (IOException e) {}
         return null;
     }
 
+    public AsyncWriter createAsyncWriter(int rowSize, String outFileName) {
+        try {
+            if(outFileName == null || outFileName.isEmpty()) return null;
+            return new AsyncStreamWriter(rowSize, outFileName);
+        } catch (IOException e) {}
+        return null;
+    }
+
+    //AsyncWriter Start:
     public static class AsyncWriter implements AutoCloseable{
 
-        private Workbook workbook;
-        private OutputStream outfile;
+        protected Workbook workbook;
+        protected OutputStream outfile;
 
-        public AsyncWriter(boolean xssf, String fileNameToWrite) throws IOException {
-            this.workbook = WorkbookFactory.create(xssf);
-            this.outfile = new FileOutputStream(fileNameToWrite, true);
-        }
+        public AsyncWriter() {}
 
         public AsyncWriter(boolean xssf, OutputStream outputStream) throws IOException {
             this.workbook = WorkbookFactory.create(xssf);
             this.outfile = outputStream;
         }
 
+        public AsyncWriter(boolean xssf, String fileNameToWrite) throws IOException {
+            this(xssf, new FileOutputStream(fileNameToWrite, true));
+        }
+
         @Override
         public void close() throws Exception {
             if (workbook != null) {
                 workbook.write(outfile);
+                if (outfile != null) {
+                    outfile.close();
+                    outfile = null;
+                }
+                if (workbook instanceof SXSSFWorkbook){
+                    ((SXSSFWorkbook) workbook).dispose();
+                }
                 workbook.close();
                 workbook = null;
-            }
-            if (outfile != null) {
-                outfile.flush();
-                outfile.close();
-                outfile = null;
             }
         }
 
@@ -176,7 +191,8 @@ public class ExcelParsingService {
                 for (String cellVal : entry.getValue()) {
                     Cell cell = row.createCell(cellIndex);
                     cell.setCellValue(cellVal);
-                    sheet.autoSizeColumn(cellIndex);
+                    if(sheet instanceof XSSFSheet)
+                        sheet.autoSizeColumn(cellIndex);
                     cellIndex++;
                 }
                 rowIndex++;
@@ -185,5 +201,19 @@ public class ExcelParsingService {
 
     }
     //AsyncWriter Done:
+
+    public static class AsyncStreamWriter extends AsyncWriter{
+
+        public AsyncStreamWriter(int rowSize, OutputStream outputStream){
+            if (rowSize <= 0) rowSize = 100;
+            this.workbook = new SXSSFWorkbook(rowSize);
+            this.outfile = outputStream;
+        }
+
+        public AsyncStreamWriter(int rowSize, String fileNameToWrite) throws IOException {
+            this(rowSize, new FileOutputStream(fileNameToWrite, true));
+        }
+
+    }
 
 }
