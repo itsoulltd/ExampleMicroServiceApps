@@ -131,20 +131,32 @@ public class ExcelParsingService {
         writer.close();
     }
 
-    public AsyncWriter createWriter(boolean xssf, String outFileName) {
+    public AsyncWriter createWriter(boolean xssf, String outFileName, boolean replace) {
         try {
             if(outFileName == null || outFileName.isEmpty()) return null;
+            if (replace) removeIfExist(outFileName);
             return new AsyncWriter(xssf, outFileName);
         } catch (IOException e) {}
         return null;
     }
 
-    public AsyncWriter createAsyncWriter(int rowSize, String outFileName) {
+    public AsyncWriter createAsyncWriter(int rowSize, String outFileName, boolean replace) {
         try {
             if(outFileName == null || outFileName.isEmpty()) return null;
+            if (replace) removeIfExist(outFileName);
             return new AsyncStreamWriter(rowSize, outFileName);
         } catch (IOException e) {}
         return null;
+    }
+
+    private boolean removeIfExist(String outFileName){
+        try {
+            File outFile = new File(outFileName);
+            if (outFile.exists() && outFile.isFile()){
+                return outFile.delete();
+            }
+        } catch (Exception e) {}
+        return false;
     }
 
     //AsyncWriter Start:
