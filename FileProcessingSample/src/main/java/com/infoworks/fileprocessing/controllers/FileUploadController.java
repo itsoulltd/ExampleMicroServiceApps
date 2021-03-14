@@ -4,21 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.infoworks.fileprocessing.services.ExcelParsingService;
 import com.infoworks.fileprocessing.services.LocalStorageService;
+import com.infoworks.lab.rest.models.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/files")
@@ -57,30 +57,55 @@ public class FileUploadController {
     }
 
     @PostMapping("/read")
-    public ResponseEntity<List<String>> handleReadContent(
-            @RequestParam("contentName") String contentName) {
+    public ResponseEntity<Map<String, Object>> handleReadContent(
+            @RequestParam("contentName") String contentName
+            , @RequestParam(value = "sheetAt", required = false) int sheetAt
+            , @RequestParam(value = "start", required = false) int start
+            , @RequestParam(value = "end", required = false) int end) {
         //
-        List<String> result = new ArrayList<>();
+        Response response = new Response().setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value()).setMessage("");
+        if (sheetAt < 0) sheetAt = 0;
+        if (start < 0) start = 0;
+        if (end <= 0) end = Integer.MAX_VALUE;
+        //
+        final StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        //
+        Map<String, Object> result = new HashMap<>();
         InputStream inputStream = storageService.read(contentName);
         ObjectMapper mapper = new ObjectMapper();
         if(inputStream != null) {
             try {
-                InputStream fileInputStream = inputStream;//storageService.copy(file);
-                Map<Integer, List<String>> data = contentService.read(fileInputStream, 0, 0, Integer.MAX_VALUE);
+                InputStream fileInputStream = inputStream;
+                Map<Integer, List<String>> data = contentService.read(fileInputStream, sheetAt, start, end);
+                List<String> rows = new ArrayList<>();
                 data.forEach((key, value) -> {
                     try {
-                        result.add(mapper.writeValueAsString(value));
+                        rows.add(mapper.writeValueAsString(value));
                     } catch (JsonProcessingException e) {}
                 });
+                result.put("rows", rows);
+                response.setStatus(HttpStatus.OK.value());
             } catch (IOException e) {
                 LOG.error(e.getMessage(), e);
-                return ResponseEntity.badRequest().body(Arrays.asList(e.getMessage()));
+                response.setError(e.getMessage());
             }
             //removing file once consume:
             storageService.remove(contentName);
-            return ResponseEntity.ok(result);
         }
-        return ResponseEntity.unprocessableEntity().body(Arrays.asList(contentName + " not found!"));
+        //
+        stopWatch.stop();
+        //Log method execution time
+        long executionTime = stopWatch.getTotalTimeMillis();
+        result.put("executionTimeInMillis", executionTime);
+        LOG.info("Execution time of " + ":: " + executionTime + " ms");
+        //
+        if (response.getStatus() == HttpStatus.OK.value()){
+            return ResponseEntity.ok(result);
+        }else{
+            result.put("error", contentName + " not found!");
+            return ResponseEntity.unprocessableEntity().body(result);
+        }
     }
 
 }
