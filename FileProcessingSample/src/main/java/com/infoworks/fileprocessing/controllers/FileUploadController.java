@@ -60,13 +60,13 @@ public class FileUploadController {
     public ResponseEntity<Map<String, Object>> handleReadContent(
             @RequestParam("contentName") String contentName
             , @RequestParam(value = "sheetAt", required = false) int sheetAt
-            , @RequestParam(value = "start", required = false) int start
-            , @RequestParam(value = "end", required = false) int end) {
+            , @RequestParam(value = "rowStartIdx", required = false) int rowStartIdx
+            , @RequestParam(value = "rowEndIdx", required = false) int rowEndIdx) {
         //
         Response response = new Response().setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value()).setMessage("");
         if (sheetAt < 0) sheetAt = 0;
-        if (start < 0) start = 0;
-        if (end <= 0) end = Integer.MAX_VALUE;
+        if (rowStartIdx < 0) rowStartIdx = 0;
+        if (rowEndIdx <= 0) rowEndIdx = Integer.MAX_VALUE;
         //
         final StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -77,7 +77,7 @@ public class FileUploadController {
         if(inputStream != null) {
             try {
                 InputStream fileInputStream = inputStream;
-                Map<Integer, List<String>> data = contentService.read(fileInputStream, sheetAt, start, end);
+                Map<Integer, List<String>> data = contentService.read(fileInputStream, sheetAt, rowStartIdx, rowEndIdx);
                 List<String> rows = new ArrayList<>();
                 data.forEach((key, value) -> {
                     try {
