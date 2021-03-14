@@ -61,12 +61,16 @@ public class FileUploadController {
             @RequestParam("contentName") String contentName
             , @RequestParam(value = "sheetAt", required = false) int sheetAt
             , @RequestParam(value = "rowStartIdx", required = false) int rowStartIdx
-            , @RequestParam(value = "rowEndIdx", required = false) int rowEndIdx) {
+            , @RequestParam(value = "rowEndIdx", required = false) int rowEndIdx
+            , @RequestParam(value = "colStartIdx", required = false) int colStartIdx
+            , @RequestParam(value = "colEndIdx", required = false) int colEndIdx) {
         //
         Response response = new Response().setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value()).setMessage("");
         if (sheetAt < 0) sheetAt = 0;
         if (rowStartIdx < 0) rowStartIdx = 0;
         if (rowEndIdx <= 0) rowEndIdx = Integer.MAX_VALUE;
+        if (colStartIdx < 0) colStartIdx = 0;
+        if (colEndIdx <= 0) colEndIdx = 0;
         //
         final StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -79,9 +83,16 @@ public class FileUploadController {
                 InputStream fileInputStream = inputStream;
                 Map<Integer, List<String>> data = contentService.read(fileInputStream, sheetAt, rowStartIdx, rowEndIdx);
                 List<String> rows = new ArrayList<>();
+                if (data.size() > 0){
+                    int length = data.get(rowStartIdx).size();
+                    if (colEndIdx <= 0 || colEndIdx > length)
+                        colEndIdx = length;
+                }
+                final int colSIdx = colStartIdx, colEIdx = colEndIdx;
                 data.forEach((key, value) -> {
                     try {
-                        rows.add(mapper.writeValueAsString(value));
+                        List<String> subItems = value.subList(colSIdx, colEIdx);
+                        rows.add(mapper.writeValueAsString(subItems));
                     } catch (JsonProcessingException e) {}
                 });
                 result.put("rows", rows);
