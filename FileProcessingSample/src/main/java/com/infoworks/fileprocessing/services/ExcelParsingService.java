@@ -1,6 +1,8 @@
 package com.infoworks.fileprocessing.services;
 
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.NumberToTextConverter;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.springframework.stereotype.Service;
@@ -79,6 +81,13 @@ public class ExcelParsingService {
         return res;
     }
 
+    public Map<Integer, List<String>> readXls(InputStream inputStream, Integer sheetAt, Integer start, Integer end) throws IOException {
+        Workbook workbook = new HSSFWorkbook(inputStream);
+        Map res = parseContent(workbook, sheetAt, start, end);
+        workbook.close();
+        return res;
+    }
+
     public Map<Integer, List<String>> read(File file, Integer sheetAt, Integer start, Integer end) throws IOException {
         Workbook workbook = WorkbookFactory.create(file);
         Map res = parseContent(workbook, sheetAt, start, end);
@@ -106,22 +115,25 @@ public class ExcelParsingService {
     }
 
     private void addInto(Map<Integer, List<String>> data, int idx, Cell cell) {
-        switch (cell.getCellTypeEnum()) {
+        switch (cell.getCellType()) {
             case STRING:
-                data.get(new Integer(idx)).add(cell.getRichStringCellValue().getString());
+                data.get(idx).add(cell.getRichStringCellValue().getString());
                 break;
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell)) {
                     data.get(idx).add(cell.getDateCellValue() + "");
                 } else {
-                    data.get(idx).add(cell.getNumericCellValue() + "");
+                    data.get(idx).add(NumberToTextConverter.toText(cell.getNumericCellValue()));
                 }
                 break;
             case BOOLEAN:
                 data.get(idx).add(cell.getBooleanCellValue() + "");
                 break;
+            case FORMULA:
+                data.get(idx).add(cell.getStringCellValue() + "");
+                break;
             default:
-                data.get(new Integer(idx)).add(" ");
+                data.get(idx).add(" ");
         }
     }
 
