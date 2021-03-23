@@ -9,7 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.*;
@@ -117,6 +121,28 @@ public class FileUploadController {
             result.put("error", contentName + " not found!");
             return ResponseEntity.unprocessableEntity().body(result);
         }
+    }
+
+    @GetMapping("/download")
+    public ResponseEntity<Resource> downloadContent(@RequestParam("contentName") String contentName) {
+        //
+        String fileKey = contentName;
+        InputStream inputStream = storageService.read(fileKey);
+        //
+        /*try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Map rows = new HashMap(); //TODO:Read Output Query:
+            contentService.write(true, out, "output", rows);
+            inputStream = new ByteArrayInputStream(out.toByteArray());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }*/
+        //Get The InputStream/OutputStream
+        InputStreamResource file = new InputStreamResource(inputStream);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + contentName)
+                .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+                .body(file);
     }
 
 }

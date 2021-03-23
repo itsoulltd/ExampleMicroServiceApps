@@ -1,5 +1,6 @@
 package com.infoworks.fileprocessing.services;
 
+import com.monitorjbl.xlsx.StreamingReader;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.NumberToTextConverter;
@@ -17,33 +18,85 @@ import java.util.function.Consumer;
 @Service
 public class ExcelParsingService {
 
-    public void read(InputStream inputStream
+    public void readAsync(InputStream inputStream
             , Integer bufferSize
             , Integer sheetAt
             , Integer startAt
             , Integer pageSize
             , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
-        //TODO:
-        /*Workbook workbook = StreamingReader.builder()
+        //
+        Workbook workbook = StreamingReader.builder()
                 .rowCacheSize(pageSize)
                 .bufferSize(bufferSize)
-                .open(inputStream);*/
+                .open(inputStream);
+        readBuffered(workbook, sheetAt, startAt, pageSize, consumer);
+        workbook.close();
+    }
+
+    public void readAsync(File file
+            , Integer bufferSize
+            , Integer sheetAt
+            , Integer startAt
+            , Integer pageSize
+            , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
+        //
+        Workbook workbook = StreamingReader.builder()
+                .rowCacheSize(pageSize)
+                .bufferSize(bufferSize)
+                .open(file);
+        readBuffered(workbook, sheetAt, startAt, pageSize, consumer);
+        workbook.close();
+    }
+
+    private void readBuffered(Workbook workbook
+            , Integer sheetAt
+            , Integer startAt
+            , Integer pageSize
+            , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
+        //
+        Sheet sheet = workbook.getSheetAt(sheetAt);
+        int maxCount = sheet.getLastRowNum() + 1;
+        pageSize = (pageSize > maxCount) ? maxCount : pageSize;
+        //
+        int idx = -1;
+        Map<Integer, List<String>> data = new HashMap<>();
+        for (Row row : sheet){
+            if (++idx < startAt) {continue;}
+            data.put(idx, new ArrayList<>());
+            for (Cell cell : row){
+                addInto(data, idx, cell);
+            }
+            if (consumer != null && data.size() == pageSize ){
+                Map xData = new HashMap(data);
+                data.clear();
+                consumer.accept(xData);
+            }
+        }
+        //left-over
+        if (consumer != null && data.size() > 0 ){
+            Map xData = new HashMap(data);
+            data.clear();
+            consumer.accept(xData);
+        }
+    }
+
+    public void read(InputStream inputStream
+            , Integer sheetAt
+            , Integer startAt
+            , Integer pageSize
+            , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
+        //
         Workbook workbook = WorkbookFactory.create(inputStream);
         readAsync(workbook, sheetAt, startAt, pageSize, consumer);
         workbook.close();
     }
 
     public void read(File file
-            , Integer bufferSize
             , Integer sheetAt
             , Integer startAt
             , Integer pageSize
             , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
-        //TODO:
-        /*Workbook workbook = StreamingReader.builder()
-                .rowCacheSize(pageSize)
-                .bufferSize(bufferSize)
-                .open(inputStream);*/
+        //
         Workbook workbook = WorkbookFactory.create(file);
         readAsync(workbook, sheetAt, startAt, pageSize, consumer);
         workbook.close();
