@@ -21,7 +21,8 @@ public class ExcelParsingService {
     public void readAsync(InputStream inputStream
             , Integer bufferSize
             , Integer sheetAt
-            , Integer startAt
+            , Integer beginIndex
+            , Integer endIndex
             , Integer pageSize
             , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
         //
@@ -29,14 +30,15 @@ public class ExcelParsingService {
                 .rowCacheSize(pageSize)
                 .bufferSize(bufferSize)
                 .open(inputStream);
-        readBuffered(workbook, sheetAt, startAt, pageSize, consumer);
+        readBuffered(workbook, sheetAt, beginIndex, endIndex, pageSize, consumer);
         workbook.close();
     }
 
     public void readAsync(File file
             , Integer bufferSize
             , Integer sheetAt
-            , Integer startAt
+            , Integer beginIndex
+            , Integer endIndex
             , Integer pageSize
             , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
         //
@@ -44,24 +46,38 @@ public class ExcelParsingService {
                 .rowCacheSize(pageSize)
                 .bufferSize(bufferSize)
                 .open(file);
-        readBuffered(workbook, sheetAt, startAt, pageSize, consumer);
+        readBuffered(workbook, sheetAt, beginIndex, endIndex, pageSize, consumer);
         workbook.close();
     }
 
+    /**
+     *
+     * @param workbook
+     * @param sheetAt
+     * @param beginIndex the beginning index, inclusive.
+     * @param endIndex the ending index, exclusive.
+     * @param pageSize
+     * @param consumer
+     * @throws IOException
+     */
     private void readBuffered(Workbook workbook
             , Integer sheetAt
-            , Integer startAt
+            , Integer beginIndex
+            , Integer endIndex
             , Integer pageSize
             , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
         //
         Sheet sheet = workbook.getSheetAt(sheetAt);
         int maxCount = sheet.getLastRowNum() + 1;
         pageSize = (pageSize > maxCount) ? maxCount : pageSize;
+        if (endIndex <= 0 || endIndex == Integer.MAX_VALUE) endIndex = maxCount;
         //
         int idx = -1;
         Map<Integer, List<String>> data = new HashMap<>();
         for (Row row : sheet){
-            if (++idx < startAt) {continue;}
+            if (++idx < beginIndex) {continue;}
+            if (idx >= endIndex) {break;}
+            //
             data.put(idx, new ArrayList<>());
             for (Cell cell : row){
                 addInto(data, idx, cell);
