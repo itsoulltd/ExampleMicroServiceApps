@@ -212,6 +212,12 @@ public class ExcelParsingService {
         writer.close();
     }
 
+    public void writeAsStream(OutputStream outputStream, String sheetName, Map<Integer, List<String>> data) throws Exception {
+        AsyncWriter writer = new AsyncStreamWriter(100, outputStream);
+        writer.write(sheetName, data, false);
+        writer.close();
+    }
+
     public AsyncWriter createWriter(boolean xssf, String outFileName, boolean replace) {
         try {
             if(outFileName == null || outFileName.isEmpty()) return null;
