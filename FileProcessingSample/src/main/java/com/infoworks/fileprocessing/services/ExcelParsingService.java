@@ -30,6 +30,7 @@ public class ExcelParsingService {
                 .rowCacheSize(pageSize)
                 .bufferSize(bufferSize)
                 .open(inputStream);
+        configureWorkbook(workbook);
         readBuffered(workbook, sheetAt, beginIndex, endIndex, pageSize, consumer);
         workbook.close();
     }
@@ -46,6 +47,7 @@ public class ExcelParsingService {
                 .rowCacheSize(pageSize)
                 .bufferSize(bufferSize)
                 .open(file);
+        configureWorkbook(workbook);
         readBuffered(workbook, sheetAt, beginIndex, endIndex, pageSize, consumer);
         workbook.close();
     }
@@ -103,6 +105,7 @@ public class ExcelParsingService {
             , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
         //
         Workbook workbook = WorkbookFactory.create(inputStream);
+        configureWorkbook(workbook);
         readAsync(workbook, sheetAt, startAt, pageSize, consumer);
         workbook.close();
     }
@@ -114,6 +117,7 @@ public class ExcelParsingService {
             , Consumer<Map<Integer, List<String>>> consumer) throws IOException {
         //
         Workbook workbook = WorkbookFactory.create(file);
+        configureWorkbook(workbook);
         readAsync(workbook, sheetAt, startAt, pageSize, consumer);
         workbook.close();
     }
@@ -145,6 +149,7 @@ public class ExcelParsingService {
 
     public Map<Integer, List<String>> read(InputStream inputStream, Integer sheetAt, Integer start, Integer end) throws IOException {
         Workbook workbook = WorkbookFactory.create(inputStream);
+        configureWorkbook(workbook);
         Map res = parseContent(workbook, sheetAt, start, end);
         workbook.close();
         return res;
@@ -152,6 +157,7 @@ public class ExcelParsingService {
 
     public Map<Integer, List<String>> readXls(InputStream inputStream, Integer sheetAt, Integer start, Integer end) throws IOException {
         Workbook workbook = new HSSFWorkbook(inputStream);
+        configureWorkbook(workbook);
         Map res = parseContent(workbook, sheetAt, start, end);
         workbook.close();
         return res;
@@ -159,9 +165,23 @@ public class ExcelParsingService {
 
     public Map<Integer, List<String>> read(File file, Integer sheetAt, Integer start, Integer end) throws IOException {
         Workbook workbook = WorkbookFactory.create(file);
+        configureWorkbook(workbook);
         Map res = parseContent(workbook, sheetAt, start, end);
         workbook.close();
         return res;
+    }
+
+    private void configureWorkbook(Workbook workbook) {
+        if (workbook != null){
+            try {
+                //Add All kind of setting for workbook:
+                workbook.setMissingCellPolicy(Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+            }catch (UnsupportedOperationException e){
+                e.printStackTrace();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
     }
 
     private Map<Integer, List<String>> parseContent(Workbook workbook, Integer sheetAt, Integer start, Integer end) throws IOException {
