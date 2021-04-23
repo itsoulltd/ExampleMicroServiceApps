@@ -6,6 +6,8 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.NumberToTextConverter;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -17,6 +19,8 @@ import java.util.function.Consumer;
 
 @Service
 public class ExcelParsingService {
+
+    private static Logger LOG = LoggerFactory.getLogger("ExcelParsingService");
 
     public void readAsync(InputStream inputStream
             , Integer bufferSize
@@ -177,9 +181,9 @@ public class ExcelParsingService {
                 //Add All kind of setting for workbook:
                 workbook.setMissingCellPolicy(Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
             }catch (UnsupportedOperationException e){
-                e.printStackTrace();
+                LOG.debug(e.getMessage(), e);
             }catch (Exception e){
-                e.printStackTrace();
+                LOG.debug(e.getMessage(), e);
             }
         }
     }
