@@ -6,8 +6,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.NumberToTextConverter;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -16,11 +14,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 public class ExcelParsingService {
 
-    private static Logger LOG = LoggerFactory.getLogger("ExcelParsingService");
+    private static java.util.logging.Logger LOG = Logger.getLogger(ExcelParsingService.class.getSimpleName());
 
     public void readAsync(InputStream inputStream
             , Integer bufferSize
@@ -181,9 +181,9 @@ public class ExcelParsingService {
                 //Add All kind of setting for workbook:
                 workbook.setMissingCellPolicy(Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
             }catch (UnsupportedOperationException e){
-                LOG.debug(e.getMessage(), e);
+                LOG.log(Level.WARNING, e.getMessage());
             }catch (Exception e){
-                LOG.debug(e.getMessage(), e);
+                LOG.log(Level.WARNING, e.getMessage());
             }
         }
     }
@@ -247,7 +247,7 @@ public class ExcelParsingService {
             if(outFileName == null || outFileName.isEmpty()) return null;
             if (replace) removeIfExist(outFileName);
             return new AsyncWriter(xssf, outFileName);
-        } catch (IOException e) {}
+        } catch (IOException e) {LOG.log(Level.WARNING, e.getMessage());}
         return null;
     }
 
@@ -256,7 +256,7 @@ public class ExcelParsingService {
             if(outFileName == null || outFileName.isEmpty()) return null;
             if (replace) removeIfExist(outFileName);
             return new AsyncStreamWriter(rowSize, outFileName);
-        } catch (IOException e) {}
+        } catch (IOException e) {LOG.log(Level.WARNING, e.getMessage());}
         return null;
     }
 
@@ -266,7 +266,7 @@ public class ExcelParsingService {
             if (outFile.exists() && outFile.isFile()){
                 return outFile.delete();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {LOG.log(Level.WARNING, e.getMessage());}
         return false;
     }
 
